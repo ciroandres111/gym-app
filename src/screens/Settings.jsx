@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { db, saveSettings, MUSCLES } from '../db'
 import { Topbar, Toggle, useToast } from '../components/ui'
 import { useNav } from '../App'
+import { useSync, login, logout } from '../sync'
 
 function download(name, text, type) {
   const blob = new Blob([text], { type })
@@ -18,6 +19,11 @@ export default function Settings() {
   const { settings } = useNav()
   const toast = useToast()
   const fileRef = useRef()
+  const sync = useSync()
+
+  async function doLogin() {
+    try { await login() } catch (e) { alert('No se pudo iniciar sesión: ' + (e?.message || e)) }
+  }
 
   async function exportJSON() {
     const data = {
@@ -120,12 +126,39 @@ export default function Settings() {
       </div>
 
       <div className="section-title">Nube</div>
-      <div className="card">
-        <div className="bold">Sincronización con Google</div>
-        <div className="small muted" style={{ marginTop: 4 }}>
-          Próximamente. Por ahora todo se guarda en este dispositivo y funciona sin internet.
-          Hacé un respaldo de vez en cuando.
-        </div>
+      <div className="card stack">
+        {sync.user ? (
+          <>
+            <div className="row">
+              {sync.user.photo && <img src={sync.user.photo} alt="" width="40" height="40" style={{ borderRadius: '50%' }} referrerPolicy="no-referrer" />}
+              <div className="grow">
+                <div className="bold ellipsis">{sync.user.name || 'Conectado'}</div>
+                <div className="small muted ellipsis">{sync.user.email}</div>
+              </div>
+            </div>
+            <div className={'hint' + (sync.state === 'ok' ? ' up' : '')} style={{ marginTop: 0 }}>
+              {{
+                ok: '✓ Sincronizado con la nube',
+                syncing: 'Sincronizando…',
+                offline: 'Sin conexión. Se sincroniza solo cuando vuelva internet.',
+                error: '⚠ ' + (sync.error || 'Error de sincronización'),
+              }[sync.state] || ''}
+            </div>
+            <button className="btn ghost" onClick={() => confirm('¿Cerrar sesión? Los datos quedan guardados en este dispositivo y en la nube.') && logout()}>
+              Cerrar sesión
+            </button>
+          </>
+        ) : (
+          <>
+            <div>
+              <div className="bold">Sincronizar con Google</div>
+              <div className="small muted" style={{ marginTop: 4 }}>
+                Guardá tus datos en la nube y usalos en el celu y en la PC. La app sigue funcionando sin internet.
+              </div>
+            </div>
+            <button className="btn primary" onClick={doLogin}>Iniciar sesión con Google</button>
+          </>
+        )}
       </div>
 
       <div className="section-title">Zona peligrosa</div>

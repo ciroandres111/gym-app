@@ -4,6 +4,7 @@ import { db, dayKey, setVolume, isWorking, fmt } from '../db'
 import { fmtDuration } from '../workout'
 import { Icon, Topbar } from '../components/ui'
 import { useNav } from '../App'
+import { ArtRest } from '../components/art'
 
 const DOW = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
@@ -71,13 +72,19 @@ export default function History() {
       </div>
       <div className="stack">
         {selList.map((w) => <WorkoutCard key={w.id} w={w} onOpen={() => nav.push('workout', { id: w.id })} />)}
-        {!selList.length && <div className="card empty" style={{ padding: 20 }}>Día de descanso</div>}
+        {!selList.length && (
+          <div className="card empty" style={{ padding: 20 }}>
+            <ArtRest />
+            <div className="big" style={{ marginTop: 6 }}>Día de descanso</div>
+            {sel === today ? 'Todavía no entrenaste hoy.' : 'No hay entrenamientos este día.'}
+          </div>
+        )}
       </div>
 
       {recent.length > 0 && (
         <>
           <div className="section-title">Últimos entrenamientos</div>
-          <div className="stack">
+          <div className="stack stagger">
             {recent.map((w) => <WorkoutCard key={w.id} w={w} showDate onOpen={() => nav.push('workout', { id: w.id })} />)}
           </div>
         </>

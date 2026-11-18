@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, MUSCLES } from '../db'
 import { Sheet, Icon } from './ui'
 import ExerciseForm from './ExerciseForm'
+import { MuscleAvatar } from './art'
 
 // Buscador de ejercicios. Si no existe, se crea ahí mismo.
 export default function ExercisePicker({ onPick, onClose, multi = true }) {
@@ -52,6 +53,7 @@ export default function ExercisePicker({ onPick, onClose, multi = true }) {
         <div>
           {list.map((e) => (
             <div key={e.id} className="list-item" onClick={() => (multi ? toggle(e.id) : pick([e.id]))}>
+              <MuscleAvatar muscle={e.muscle} size={36} />
               <div className="grow">
                 <div className="bold">{e.name}</div>
                 <div className="small muted">{e.muscle} · {e.equipment}{e.unilateral ? ' · Unilateral' : ''}</div>

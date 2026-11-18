@@ -2,14 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, lastPerformance, suggestion, fmt, setVolume, isWorking } from '../db'
 import { newEntry, newSet, toggleLink, move, isLinkedToNext, fmtDuration } from '../workout'
-import { Icon, Sheet, Topbar, useToast } from '../components/ui'
+import { Icon, Sheet, Topbar } from '../components/ui'
 import ExercisePicker from '../components/ExercisePicker'
 import ExerciseForm from '../components/ExerciseForm'
 import { useNav } from '../App'
+import Celebration from '../components/Celebration'
+import { MuscleAvatar } from '../components/art'
 
 export default function Workout({ id }) {
   const nav = useNav()
-  const toast = useToast()
   // El entrenamiento vive en memoria y se guarda en segundo plano: así no se pisan los cambios rápidos.
   const [w, setW] = useState(undefined)
   const dirty = useRef(false)
@@ -19,6 +20,7 @@ export default function Workout({ id }) {
   const [picking, setPicking] = useState(false)
   const [menu, setMenu] = useState(null) // índice de entry
   const [editing, setEditing] = useState(null)
+  const [celebrate, setCelebrate] = useState(null)
   const [, tick] = useState(0)
 
   useEffect(() => {
@@ -26,6 +28,7 @@ export default function Workout({ id }) {
     return () => clearInterval(t)
   }, [])
 
+  if (celebrate) return <Celebration {...celebrate} onDone={() => nav.reset('home')} />
   if (w === undefined) return null
   if (!w) return <Topbar title="Entrenamiento no encontrado" onBack={nav.pop} />
 
@@ -63,9 +66,17 @@ export default function Workout({ id }) {
       .map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) }))
       .filter((e) => e.sets.length)
     dirty.current = false
-    await db.workouts.put({ ...w, entries, finishedAt: Date.now(), restEnd: null })
-    toast('¡Entrenamiento guardado! 💪')
-    nav.reset('home')
+    const finishedAt = Date.now()
+    await db.workouts.put({ ...w, entries, finishedAt, restEnd: null })
+    const working = entries.flatMap((e) => e.sets.filter(isWorking))
+    if (nav.settings.vibrate && navigator.vibrate) navigator.vibrate([30, 60, 30, 60, 120])
+    setCelebrate({
+      complete: !pending,
+      duration: finishedAt - w.startedAt,
+      sets: working.length,
+      volume: working.reduce((a, s) => a + setVolume(s), 0),
+      records: await findRecords(entries, w, exById),
+    })
   }
 
   async function discard() {
@@ -176,6 +187,22 @@ export default function Workout({ id }) {
   )
 }
 
+// Récords de peso: el peso más alto de hoy supera al de todos los entrenamientos anteriores.
+async function findRecords(entries, w, exById) {
+  const prev = (await db.workouts.toArray()).filter((x) => x.finishedAt && x.id !== w.id && x.date < w.date)
+  const top = (sets) => Math.max(0, ...sets.filter(isWorking).map((s) => Math.max(+s.kg || 0, +s.kg2 || 0)))
+  const out = []
+  for (const e of entries) {
+    const before = prev.flatMap((x) => x.entries.filter((y) => y.exerciseId === e.exerciseId).flatMap((y) => y.sets))
+    if (!before.length) continue
+    const now = top(e.sets)
+    const old = top(before)
+    if (now > old && !out.some((r) => r.id === e.exerciseId))
+      out.push({ id: e.exerciseId, name: exById(e.exerciseId)?.name || 'Ejercicio', kg: now, prev: old })
+  }
+  return out
+}
+
 function ExerciseBlock({ entry, exercise, workoutId, readOnly, inGroup, onChange, onSetDone, onMenu }) {
   const last = useLiveQuery(() => lastPerformance(entry.exerciseId, workoutId), [entry.exerciseId, workoutId])
   if (!exercise) {
@@ -247,8 +274,12 @@ function ExerciseBlock({ entry, exercise, workoutId, readOnly, inGroup, onChange
   return (
     <div className={'card ex-card' + (inGroup ? ' superset' : '')}>
       <div className="row">
+        <MuscleAvatar muscle={exercise.muscle} />
         <div className="grow">
-          <div className="bold" style={{ fontSize: 17 }}>{exercise.name}</div>
+          <div className="row" style={{ gap: 6 }}>
+            <div className="bold ellipsis" style={{ fontSize: 17 }}>{exercise.name}</div>
+            {!readOnly && entry.sets.length > 0 && entry.sets.every((s) => s.done) && <span className="chip accent pop-in">✓ Completo</span>}
+          </div>
           <div className="small muted">
             {exercise.muscle} · {exercise.repMin}–{exercise.repMax} reps{uni ? ' · por lado' : ''}
           </div>
@@ -373,7 +404,7 @@ function RestTimer({ w, onChange }) {
   const ss = String(left % 60).padStart(2, '0')
 
   return (
-    <div className={'timer' + (finished ? ' finished' : '')}>
+    <div className={'timer' + (finished ? ' finished' : left <= 3 ? ' ending' : '')}>
       <div className="time">{finished ? '¡Dale!' : `${mm}:${ss}`}</div>
       <div className="bar"><i style={{ width: pct + '%' }} /></div>
       {!finished && <button onClick={() => onChange({ restEnd: w.restEnd - 15000 })}>−15</button>}

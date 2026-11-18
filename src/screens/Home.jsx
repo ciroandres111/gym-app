@@ -4,6 +4,7 @@ import { db, uid, SPLITS, startOfWeek, setVolume, isWorking, fmt } from '../db'
 import { startWorkout, fmtDuration } from '../workout'
 import { Icon, Sheet, Topbar } from '../components/ui'
 import { useNav } from '../App'
+import { SplitArt, ArtRoutines, HeroPlates } from '../components/art'
 
 export default function Home() {
   const nav = useNav()
@@ -47,12 +48,14 @@ export default function Home() {
 
       {active ? (
         <div className="hero">
+          <HeroPlates />
           <h2>Entrenamiento en curso</h2>
           <p>{active.title} · {fmtDuration(Date.now() - active.startedAt)}</p>
           <button className="btn" onClick={() => nav.push('workout', { id: active.id })}><Icon.play /> Continuar</button>
         </div>
       ) : (
         <div className="hero">
+          <HeroPlates />
           <h2>Esta semana</h2>
           <p>{week.length ? '¡Seguí así!' : 'Todavía no entrenaste esta semana.'}</p>
           <div className="stat-row">
@@ -68,14 +71,15 @@ export default function Home() {
         <button className="btn sm primary" onClick={() => setPicking(true)}><Icon.plus /> Nueva</button>
       </div>
 
-      <div className="stack">
+      <div className="stack stagger">
         {routines.map((r) => {
           const last = lastDone(r.id)
           const lastIdx = last ? r.days.findIndex((d) => d.id === last.dayId) : -1
           const nextId = r.days[(lastIdx + 1) % r.days.length]?.id
           return (
             <div key={r.id} className="card">
-              <div className="row" style={{ marginBottom: 10 }}>
+              <div className="row" style={{ marginBottom: 10, gap: 12 }}>
+                <SplitArt split={r.split} name={r.name} days={r.days.length} />
                 <div className="grow">
                   <div className="bold" style={{ fontSize: 17 }}>{r.name}</div>
                   <div className="small muted">
@@ -103,6 +107,7 @@ export default function Home() {
         })}
         {!routines.length && (
           <div className="card empty">
+            <ArtRoutines />
             <div className="big">Armá tu primera rutina</div>
             Elegí un split (PPL, Arnold, Upper/Lower…) y cargá tus ejercicios.
             <div style={{ marginTop: 14 }}>
@@ -120,11 +125,12 @@ export default function Home() {
           <div>
             {SPLITS.map((s) => (
               <div key={s.key} className="list-item" onClick={() => createFrom(s)}>
+                <SplitArt split={s.key} days={s.days.length} />
                 <div className="grow">
                   <div className="bold">{s.name}</div>
                   <div className="small muted">{s.desc}{s.key !== 'custom' ? ' · ' + s.days.join(' / ') : ''}</div>
                 </div>
-                <Icon.plus />
+                <span className="add-dot"><Icon.plus /></span>
               </div>
             ))}
           </div>

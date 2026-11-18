@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, MUSCLES } from '../db'
 import { Icon, Topbar } from '../components/ui'
 import ExerciseForm from '../components/ExerciseForm'
+import { MuscleAvatar, ArtExercises } from '../components/art'
 
 export default function Exercises() {
   const all = useLiveQuery(() => db.exercises.toArray(), []) || []
@@ -27,9 +28,10 @@ export default function Exercises() {
       {groups.map(([m, l]) => (
         <div key={m}>
           <div className="section-title">{m}</div>
-          <div className="card" style={{ padding: '4px 16px' }}>
+          <div className="card stagger" style={{ padding: '4px 16px' }}>
             {l.map((e) => (
               <div key={e.id} className="list-item" onClick={() => setForm(e)}>
+                <MuscleAvatar muscle={e.muscle} />
                 <div className="grow">
                   <div className="bold">{e.name}</div>
                   <div className="small muted">
@@ -45,6 +47,7 @@ export default function Exercises() {
 
       {!list.length && (
         <div className="card empty" style={{ marginTop: 16 }}>
+          <ArtExercises />
           <div className="big">{q ? 'No se encontró' : 'Tu lista está vacía'}</div>
           {q ? `No tenés "${q}".` : 'Cargá los ejercicios que hacés en tu gimnasio.'}
           <div style={{ marginTop: 14 }}>

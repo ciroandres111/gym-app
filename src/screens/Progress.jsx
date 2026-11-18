@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, startOfWeek, setVolume, isWorking, fmt, MUSCLES } from '../db'
 import { Topbar } from '../components/ui'
+import { BodyMap, ArtChart } from '../components/art'
 
 const WEEKS = 10
 
@@ -85,6 +86,12 @@ export default function Progress() {
         Por músculo · semana del {new Date(cur.start).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
       </div>
       <div className="card">
+        {muscleRows.length > 0 && (
+          <div className="bodymap-wrap">
+            <BodyMap size={190} highlight={Object.fromEntries(muscleRows.map(([m, v]) => [m, v[metric] / mMax]))} />
+            <div className="tiny muted">Más verde = más trabajo esa semana</div>
+          </div>
+        )}
         {muscleRows.length ? (
           muscleRows.map(([m, v]) => (
             <div key={m} className="hbar">
@@ -94,7 +101,11 @@ export default function Progress() {
             </div>
           ))
         ) : (
-          <div className="empty" style={{ padding: 16 }}>Sin entrenamientos esta semana</div>
+          <div className="empty" style={{ padding: 16 }}>
+            <ArtChart />
+            <div className="big" style={{ marginTop: 6 }}>Sin entrenamientos esta semana</div>
+            Cuando termines uno, acá vas a ver qué músculos trabajaste.
+          </div>
         )}
         {muscleRows.length > 0 && (
           <div className="small muted" style={{ marginTop: 8 }}>

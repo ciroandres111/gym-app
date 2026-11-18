@@ -59,7 +59,9 @@ export default function App() {
   return (
     <ToastProvider>
       <NavCtx.Provider value={nav}>
-        <div className="app">{screen}</div>
+        <div className="app">
+          <div key={top ? top.name + stack.length : tab} className={'screen' + (top ? ' sub' : '')}>{screen}</div>
+        </div>
         <nav className="nav">
           <div className="nav-inner">
             {TABS.map((t) => (
